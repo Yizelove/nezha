@@ -45,8 +45,13 @@ jobs:
         env:
           IPINFO_TOKEN: ${{ secrets.IPINFO_TOKEN }}
         run: |
-          rm pkg/geoip/geoip.db
-          wget -qO pkg/geoip/geoip.db https://ipinfo.io/data/free/country.mmdb?token=${IPINFO_TOKEN}
+          rm -f pkg/geoip/geoip.db
+          if [ -n "$IPINFO_TOKEN" ]; then
+            wget -qO pkg/geoip/geoip.db https://ipinfo.io/data/free/country.mmdb?token=${IPINFO_TOKEN} || echo "Warning: Failed to fetch GeoIP database"
+          else
+            echo "Warning: IPINFO_TOKEN not set, skipping GeoIP database download"
+            touch pkg/geoip/geoip.db
+          fi
 
       - name: Set up Go
         uses: actions/setup-go@v5
