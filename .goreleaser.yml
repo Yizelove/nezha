@@ -3,6 +3,27 @@ before:
   hooks:
     - go mod tidy -v
 builds:
+  - id: linux_armv7l
+    env:
+      - CGO_ENABLED=1
+      - CC=arm-linux-gnueabihf-gcc
+    ldflags:
+      - -s -w
+      - -X github.com/nezhahq/nezha/service/singleton.Version={{.Version}}
+      - -extldflags "-static -fpic"
+    flags:
+      - -trimpath
+      - -buildvcs=false
+    tags:
+      - go_json
+    goos:
+      - linux
+    goarch:
+      - arm
+    goarm:
+      - "7"
+    main: ./cmd/dashboard
+    binary: dashboard-{{ .Os }}-{{ .Arch }}-v7l
   - id: linux_arm64
     env:
       - CGO_ENABLED=1
