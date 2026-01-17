@@ -4,7 +4,7 @@
 #   Nezha Dashboard ARMv7l 一键安装脚本
 #   System Required: ARMv7l (32-bit ARM)
 #   Description: 自动下载并安装 Nezha Dashboard ARMv7l 版本
-#   Version: 1.1.0
+#   Version: 1.2.0
 #========================================================
 
 NZ_BASE_PATH="/opt/nezha"
@@ -113,9 +113,9 @@ download_dashboard() {
     
     # 构建基础下载 URL
     if [[ "${NZ_VERSION}" == "latest" ]]; then
-        BASE_URL="https://github.com/Yizelove/nezha/releases/latest/download/dashboard-linux-arm-v7l.zip"
+        BASE_URL="https://github.com/Yizelove/nezha/releases/latest/download/dashboard-linux-armv7l.zip"
     else
-        BASE_URL="https://github.com/Yizelove/nezha/releases/download/${NZ_VERSION}/dashboard-linux-arm-v7l.zip"
+        BASE_URL="https://github.com/Yizelove/nezha/releases/download/${NZ_VERSION}/dashboard-linux-armv7l.zip"
     fi
     
     # 尝试使用不同的代理下载
@@ -153,7 +153,8 @@ download_dashboard() {
     rm -f dashboard.zip
     
     # 设置执行权限
-    chmod +x dashboard-linux-arm-v7l
+    # 注意：解压出来的二进制文件名在 .goreleaser.yml 中定义为 dashboard-linux-arm
+    chmod +x dashboard-linux-arm
     
     success "Dashboard 文件下载并解压完成"
 }
@@ -171,7 +172,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=${NZ_DASHBOARD_PATH}
-ExecStart=${NZ_DASHBOARD_PATH}/dashboard-linux-arm-v7l
+ExecStart=${NZ_DASHBOARD_PATH}/dashboard-linux-arm
 Restart=on-failure
 RestartSec=10s
 
@@ -257,7 +258,7 @@ uninstall_dashboard() {
         rm -rf ${NZ_BASE_PATH}
         success "所有数据已删除"
     else
-        rm -f ${NZ_DASHBOARD_PATH}/dashboard-linux-arm-v7l
+        rm -f ${NZ_DASHBOARD_PATH}/dashboard-linux-arm
         info "保留了数据文件在: ${NZ_BASE_PATH}"
     fi
     
