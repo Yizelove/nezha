@@ -16,6 +16,9 @@ jobs:
         goarch: [amd64]
         include:
           - goos: linux
+            goarch: arm
+            goarm: "7"
+          - goos: linux
             goarch: s390x
           - goos: linux
             goarch: arm64
@@ -42,8 +45,13 @@ jobs:
         env:
           IPINFO_TOKEN: ${{ secrets.IPINFO_TOKEN }}
         run: |
-          rm pkg/geoip/geoip.db
-          wget -qO pkg/geoip/geoip.db https://ipinfo.io/data/free/country.mmdb?token=${IPINFO_TOKEN}
+          rm -f pkg/geoip/geoip.db
+          if [ -n "$IPINFO_TOKEN" ]; then
+            wget -qO pkg/geoip/geoip.db https://ipinfo.io/data/free/country.mmdb?token=${IPINFO_TOKEN} || echo "Warning: Failed to fetch GeoIP database"
+          else
+            echo "Warning: IPINFO_TOKEN not set, skipping GeoIP database download"
+            touch pkg/geoip/geoip.db
+          fi
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -82,7 +90,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dashboard-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: dashboard-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goarm && format('-v{0}', matrix.goarm) || '' }}
           path: |
             ./dist/*/*
 
@@ -107,10 +115,10 @@ jobs:
           done
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: ncipollo/release-action@v1
         with:
-          files: "assets/*/*/*.zip"
-          generate_release_notes: true
+          artifacts: "assets/*/*/*.zip"
+          generateReleaseNotes: true
 
       - name: Purge jsdelivr cache
         run: |
@@ -124,96 +132,3 @@ jobs:
           curl -s https://purge.jsdelivr.net/gh/$LOWER_USERNAME/nezha@master/script/docker-compose.yaml
           curl -s https://purge.jsdelivr.net/gh/$LOWER_USERNAME/nezha@master/script/config.yaml
 
-      - name: Trigger sync
-        env:
-          GH_REPO: ${{ github.repository }}
-          GH_TOKEN: ${{ github.token }}
-          GH_DEBUG: api
-        run: |
-          gh workflow run sync-release.yml
-
-  release-docker:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-    needs: build
-    name: Release Docker images
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ./assets
-
-      - name: Fix permissions
-        run: |
-          chmod -R +x ./assets/*
-          mkdir dist
-          mv ./assets/*/*/* ./dist
-
-      - name: Extract branch name in tag
-        run: |
-          if [[ $GITHUB_REF == refs/heads/* ]]; then
-            export TAG_NAME=$(echo ${GITHUB_REF#refs/heads/})
-          else
-            export TAG_NAME=$(echo ${GITHUB_REF#refs/tags/})
-          fi
-          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
-        id: extract_branch
-
-      - name: Log into GHCR
-        uses: docker/login-action@master
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ github.token }}
-
-      - name: Log in to the AliyunCS
-        if: contains(github.ref, 'refs/tags/')
-        uses: docker/login-action@master
-        with:
-          registry: registry.cn-shanghai.aliyuncs.com
-          username: ${{ secrets.ALI_USER }}
-          password: ${{ secrets.ALI_PAT }}
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Set up image name
-        run: |
-          GHCR_IMAGE_NAME=$(echo "ghcr.io/${{ github.repository_owner }}/nezha" | tr '[:upper:]' '[:lower:]')
-          if [ ${{ github.repository_owner }} = "nezhahq" ]
-            then ALI_IMAGE_NAME=$(echo "registry.cn-shanghai.aliyuncs.com/naibahq/nezha-dashboard")
-            else ALI_IMAGE_NAME=$(echo "registry.cn-shanghai.aliyuncs.com/${{ github.repository_owner }}/nezha-dashboard" | tr '[:upper:]' '[:lower:]')
-          fi
-          echo "GHCR_IMAGE_NAME=$GHCR_IMAGE_NAME" >> $GITHUB_OUTPUT
-          echo "ALI_IMAGE_NAME=$ALI_IMAGE_NAME" >> $GITHUB_OUTPUT
-        id: image-name
-
-      - name: Build dasbboard image And Push with tag
-        if: contains(github.ref, 'refs/tags/')
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64,linux/s390x
-          push: true
-          tags: |
-            ${{ steps.image-name.outputs.GHCR_IMAGE_NAME }}:latest
-            ${{ steps.image-name.outputs.GHCR_IMAGE_NAME }}:${{ steps.extract_branch.outputs.tag }}
-            ${{ steps.image-name.outputs.ALI_IMAGE_NAME }}:latest
-            ${{ steps.image-name.outputs.ALI_IMAGE_NAME }}:${{ steps.extract_branch.outputs.tag }}
-
-      - name: Build dasbboard image And Push snapshot
-        if: contains(github.ref, 'refs/tags/') == false
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64,linux/s390x
-          push: true
-          tags: |
-            ${{ steps.image-name.outputs.GHCR_IMAGE_NAME }}:${{ steps.extract_branch.outputs.tag }}
