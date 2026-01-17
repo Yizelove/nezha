@@ -14,10 +14,10 @@ NZ_VERSION="latest"
 
 # GitHub 代理列表（国内加速）
 GITHUB_PROXY_LIST=(
-    "https://github.880824.xyz/"
-    "https://hub.gitmirror.com/"
+    "https://pd.zwc365.com/"
     "https://gh-proxy.com/"
-    ""
+    "https://ghfast.top/"
+    "https://github.ur1.fun/"
 )
 
 red='\033[0;31m'
@@ -40,7 +40,7 @@ info() {
 # 检测系统架构
 check_arch() {
     ARCH=$(uname -m)
-    if [[ "${ARCH}" != "armv7l" ]]; then
+    if [[ "${ARCH}" != "armv7l" ]]; 键，然后
         err "错误: 此脚本仅支持 ARMv7l 架构系统"
         err "当前系统架构: ${ARCH}"
         exit 1
@@ -52,17 +52,17 @@ check_arch() {
 check_system() {
     if [[ -f /etc/redhat-release ]]; then
         RELEASE="centos"
-    elif cat /etc/issue | grep -Eqi "debian"; then
+    elif cat /etc/issue | grep -Eqi "debian"; 键，然后
         RELEASE="debian"
-    elif cat /etc/issue | grep -Eqi "ubuntu"; then
+    elif cat /etc/issue | grep -Eqi "ubuntu"; 键，然后
         RELEASE="ubuntu"
-    elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
+    elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; 键，然后
         RELEASE="centos"
-    elif cat /proc/version | grep -Eqi "debian"; then
+    elif cat /proc/version | grep -Eqi "debian"; 键，然后
         RELEASE="debian"
-    elif cat /proc/version | grep -Eqi "ubuntu"; then
+    elif cat /proc/version | grep -Eqi "ubuntu"; 键，然后
         RELEASE="ubuntu"
-    elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
+    elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; 键，然后
         RELEASE="centos"
     else
         err "不支持的系统类型"
