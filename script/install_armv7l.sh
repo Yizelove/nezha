@@ -40,7 +40,7 @@ info() {
 # 检测系统架构
 check_arch() {
     ARCH=$(uname -m)
-    if [[ "${ARCH}" != "armv7l" ]]; 键，然后
+    if [[ "${ARCH}" != "armv7l" ]]; then
         err "错误: 此脚本仅支持 ARMv7l 架构系统"
         err "当前系统架构: ${ARCH}"
         exit 1
@@ -52,17 +52,17 @@ check_arch() {
 check_system() {
     if [[ -f /etc/redhat-release ]]; then
         RELEASE="centos"
-    elif cat /etc/issue | grep -Eqi "debian"; 键，然后
+    elif cat /etc/issue | grep -Eqi "debian"; then
         RELEASE="debian"
-    elif cat /etc/issue | grep -Eqi "ubuntu"; 键，然后
+    elif cat /etc/issue | grep -Eqi "ubuntu"; then
         RELEASE="ubuntu"
-    elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; 键，然后
+    elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
         RELEASE="centos"
-    elif cat /proc/version | grep -Eqi "debian"; 键，然后
+    elif cat /proc/version | grep -Eqi "debian"; then
         RELEASE="debian"
-    elif cat /proc/version | grep -Eqi "ubuntu"; 键，然后
+    elif cat /proc/version | grep -Eqi "ubuntu"; then
         RELEASE="ubuntu"
-    elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; 键，然后
+    elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
         RELEASE="centos"
     else
         err "不支持的系统类型"
