@@ -102,6 +102,6 @@ builds:
     binary: dashboard-{{ .Os }}-{{ .Arch }}
 archives:
   - format: zip
-    name_template: "dashboard-{{ .Os }}-{{ .Arch }}{{ if .Arm }}-v{{ .Arm }}{{ end }}"
+    name_template: "dashboard-{{ .Os }}-{{ if eq .Arch \"arm\" }}armv7l{{ else }}{{ .Arch }}{{ end }}"
 snapshot:
   version_template: "dashboard"
