@@ -14,7 +14,7 @@ builds:
     flags:
       - -trimpath
       - -buildvcs=false
-    标签:
+    tags:
       - go_json
     goos:
       - linux
@@ -35,7 +35,7 @@ builds:
     flags:
       - -trimpath
       - -buildvcs=false
-    标签:
+    tags:
       - go_json
     goos:
       - linux
@@ -54,7 +54,7 @@ builds:
     flags:
       - -trimpath
       - -buildvcs=false
-    标签:
+    tags:
       - go_json
     goos:
       - linux
