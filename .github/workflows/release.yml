@@ -12,9 +12,11 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        goos: [linux, windows]
-        goarch: [amd64]
         include:
+          - goos: linux
+            goarch: amd64
+          - goos: windows
+            goarch: amd64
           - goos: linux
             goarch: arm
             goarm: "7"
@@ -115,10 +117,10 @@ jobs:
           done
 
       - name: Release
-        uses: ncipollo/release-action@v1
+        uses: softprops/action-gh-release@v2
         with:
-          artifacts: "assets/*/*/*.zip"
-          generateReleaseNotes: true
+          files: "assets/*/*/*.zip"
+          generate_release_notes: true
 
       - name: Purge jsdelivr cache
         run: |
@@ -131,4 +133,3 @@ jobs:
           curl -s https://purge.jsdelivr.net/gh/$LOWER_USERNAME/nezha@master/script/nezha-agent.service
           curl -s https://purge.jsdelivr.net/gh/$LOWER_USERNAME/nezha@master/script/docker-compose.yaml
           curl -s https://purge.jsdelivr.net/gh/$LOWER_USERNAME/nezha@master/script/config.yaml
-
