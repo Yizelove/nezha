@@ -20,10 +20,9 @@ builds:
       - linux
     goarch:
       - arm
-    goarm:
-      - "7"
+    goarm: "7"
     main: ./cmd/dashboard
-    binary: dashboard-{{ .Os }}-{{ .Arch }}-v7l
+    binary: dashboard-{{ .Os }}-{{ .Arch }}
   - id: linux_arm64
     env:
       - CGO_ENABLED=1
@@ -100,5 +99,8 @@ builds:
       - amd64
     main: ./cmd/dashboard
     binary: dashboard-{{ .Os }}-{{ .Arch }}
+archives:
+  - format: zip
+    name_template: "dashboard-{{ .Os }}-{{ .Arch }}{{ if .Arm }}-v{{ .Arm }}{{ end }}"
 snapshot:
   version_template: "dashboard"
