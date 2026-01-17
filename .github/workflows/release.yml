@@ -109,25 +109,24 @@ jobs:
 
       - name: Archive and compress binaries
         run: |
-          find assets/*/*/* -type f | while read -r file; do
-            dir=$(dirname "$file")
+          mkdir -p ./final_assets
+          find assets/ -type f -name "dashboard-*" | while read -r file; do
             filename=$(basename "$file")
-            # 如果是 arm 架构，重命名为 armv7l
             if [[ "$filename" == *"arm"* ]]; then
               targetName="dashboard-linux-armv7l.zip"
             else
               fileWithoutExt="${filename%.*}"
               targetName="$fileWithoutExt.zip"
             fi
-            zip -jr "$dir/$targetName" "$file"
+            zip -jr "./final_assets/$targetName" "$file"
           done
-
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          files: "assets/*/*/*.zip"
+          files: "final_assets/*.zip"
           generate_release_notes: true
+          allowUpdates: true
 
       - name: Purge jsdelivr cache
         run: |
