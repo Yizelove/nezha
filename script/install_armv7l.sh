@@ -14,10 +14,10 @@ NZ_VERSION="latest"
 
 # GitHub 代理列表（国内加速）
 GITHUB_PROXY_LIST=(
-    "https://github.ur1.fun/"
-    "https://pd.zwc365.com/"
-    "https://gh-proxy.com/"
+    "https://gh.llkk.cc/"
+    "https://gh-proxy.net/"
     "https://ghfast.top/"
+    "https://gh-proxy.com/"
 )
 
 red='\033[0;31m'
