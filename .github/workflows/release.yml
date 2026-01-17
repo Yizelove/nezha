@@ -1,107 +1,135 @@
-version: 2
-before:
-  hooks:
-    - go mod tidy -v
-builds:
-  - id: linux_armv7l
-    env:
-      - CGO_ENABLED=1
-      - CC=arm-linux-gnueabihf-gcc
-    ldflags:
-      - -s -w
-      - -X github.com/nezhahq/nezha/service/singleton.Version={{.Version}}
-      - -extldflags "-static -fpic"
-    flags:
-      - -trimpath
-      - -buildvcs=false
+name: Release
+
+on:
+  push:
     tags:
-      - go_json
-    goos:
-      - linux
-    goarch:
-      - arm
-    goarm:
-      - "7"
-    main: ./cmd/dashboard
-    binary: dashboard-{{ .Os }}-{{ .Arch }}
-  - id: linux_arm64
-    env:
-      - CGO_ENABLED=1
-      - CC=aarch64-linux-gnu-gcc
-    ldflags:
-      - -s -w
-      - -X github.com/nezhahq/nezha/service/singleton.Version={{.Version}}
-      - -extldflags "-static -fpic"
-    flags:
-      - -trimpath
-      - -buildvcs=false
-    tags:
-      - go_json
-    goos:
-      - linux
-    goarch:
-      - arm64
-    main: ./cmd/dashboard
-    binary: dashboard-{{ .Os }}-{{ .Arch }}
-  - id: linux_amd64
-    env:
-      - CGO_ENABLED=1
-      - CC=x86_64-linux-gnu-gcc
-    ldflags:
-      - -s -w
-      - -X github.com/nezhahq/nezha/service/singleton.Version={{.Version}}
-      - -extldflags "-static -fpic"
-    flags:
-      - -trimpath
-      - -buildvcs=false
-    tags:
-      - go_json
-    goos:
-      - linux
-    goarch:
-      - amd64
-    main: ./cmd/dashboard
-    binary: dashboard-{{ .Os }}-{{ .Arch }}
-  - id: linux_s390x
-    env:
-      - CGO_ENABLED=1
-      - CC=s390x-linux-gnu-gcc
-    ldflags:
-      - -s -w
-      - -X github.com/nezhahq/nezha/service/singleton.Version={{.Version}}
-      - -extldflags "-static -fpic"
-    flags:
-      - -trimpath
-      - -buildvcs=false
-    tags:
-      - go_json
-    goos:
-      - linux
-    goarch:
-      - s390x
-    main: ./cmd/dashboard
-    binary: dashboard-{{ .Os }}-{{ .Arch }}
-  - id: windows_amd64
-    env:
-      - CGO_ENABLED=1
-      - CC=x86_64-w64-mingw32-gcc
-    ldflags:
-      - -s -w
-      - -X github.com/nezhahq/nezha/service/singleton.Version={{.Version}}
-      - -extldflags "-static -fpic"
-    flags:
-      - -trimpath
-      - -buildvcs=false
-    tags:
-      - go_json
-    goos:
-      - windows
-    goarch:
-      - amd64
-    main: ./cmd/dashboard
-    binary: dashboard-{{ .Os }}-{{ .Arch }}
-archives:
-  - format: zip
-    name_template: "dashboard-{{ .Os }}-{{ .Arch }}{{ if .Arm }}-v{{ .Arm }}{{ end }}"
-snapshot:
-  version_template: "dashboard"
+      - "v*"
+    branches:
+      - dev
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: windows
+            goarch: amd64
+          - goos: linux
+            goarch: arm
+            goarm: "7"
+          - goos: linux
+            goarch: s390x
+          - goos: linux
+            goarch: arm64
+
+    name: Build artifacts
+    runs-on: ubuntu-latest
+    container:
+      image: goreleaser/goreleaser-cross:v1.24
+    steps:
+      - run: |
+          apt update && apt install unzip curl -y
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+          chmod +x /usr/bin/yq
+
+      - run: git config --global --add safe.directory /__w/nezha/nezha
+
+      - uses: actions/checkout@v4
+
+      - name: Prepare frontends' dists
+        run: |
+          chmod +x ./script/fetch-frontends.sh && ./script/fetch-frontends.sh
+
+      - name: Fetch IPInfo GeoIP Database
+        env:
+          IPINFO_TOKEN: ${{ secrets.IPINFO_TOKEN }}
+        run: |
+          rm -f pkg/geoip/geoip.db
+          if [ -n "$IPINFO_TOKEN" ]; then
+            wget -qO pkg/geoip/geoip.db https://ipinfo.io/data/free/country.mmdb?token=${IPINFO_TOKEN} || echo "Warning: Failed to fetch GeoIP database"
+          else
+            echo "Warning: IPINFO_TOKEN not set, skipping GeoIP database download"
+            touch pkg/geoip/geoip.db
+          fi
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+
+      - name: generate swagger docs
+        run: |
+          go install github.com/swaggo/swag/cmd/swag@latest
+          swag init --pd -d . -g ./cmd/dashboard/main.go -o ./cmd/dashboard/docs --parseGoList=false
+
+      - name: Build with tag
+        if: contains(github.ref, 'refs/tags/')
+        uses: goreleaser/goreleaser-action@v6
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: build --single-target --clean --skip=validate
+
+      - name: Build snapshot
+        if: contains(github.ref, 'refs/tags/') == false
+        uses: goreleaser/goreleaser-action@v6
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          GOARM: ${{ matrix.goarm }}
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: build --single-target --clean --skip=validate --snapshot
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goarm && format('-v{0}', matrix.goarm) || '' }}
+          path: |
+            ./dist/*/*
+
+  release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    needs: build
+    name: Release
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./assets
+
+      - name: Archive and compress binaries
+        run: |
+          find assets/*/*/* -type f | while read -r file; do
+            dir=$(dirname "$file")
+            filename=$(basename "$file")
+            fileWithoutExt="${filename%.*}"
+            zip -jr "$dir/$fileWithoutExt.zip" "$file"
+          done
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "assets/*/*/*.zip"
+          generate_release_notes: true
+
+      - name: Purge jsdelivr cache
+        run: |
+          curl -s https://purge.jsdelivr.net/gh/${{ github.repository_owner }}/nezha@master/script/install.sh
+          curl -s https://purge.jsdelivr.net/gh/${{ github.repository_owner }}/nezha@master/script/nezha-agent.service
+          curl -s https://purge.jsdelivr.net/gh/${{ github.repository_owner }}/nezha@master/script/docker-compose.yaml
+          curl -s https://purge.jsdelivr.net/gh/${{ github.repository_owner }}/nezha@master/script/config.yaml
+          LOWER_USERNAME=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          curl -s https://purge.jsdelivr.net/gh/$LOWER_USERNAME/nezha@master/script/install.sh
+          curl -s https://purge.jsdelivr.net/gh/$LOWER_USERNAME/nezha@master/script/nezha-agent.service
+          curl -s https://purge.jsdelivr.net/gh/$LOWER_USERNAME/nezha@master/script/docker-compose.yaml
+          curl -s https://purge.jsdelivr.net/gh/$LOWER_USERNAME/nezha@master/script/config.yaml
