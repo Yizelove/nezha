@@ -20,8 +20,7 @@ builds:
       - linux
     goarch:
       - arm
-    goarm:
-      - "7"
+    goarm: "7"
     main: ./cmd/dashboard
     binary: dashboard-{{ .Os }}-{{ .Arch }}
   - id: linux_arm64
@@ -73,6 +72,7 @@ builds:
     flags:
       - -trimpath
       - -buildvcs=false
+      - -mod=vendor
     tags:
       - go_json
     goos:
@@ -100,8 +100,5 @@ builds:
       - amd64
     main: ./cmd/dashboard
     binary: dashboard-{{ .Os }}-{{ .Arch }}
-archives:
-  - format: zip
-    name_template: "dashboard-{{ .Os }}-{{ if eq .Arch \"arm\" }}armv7l{{ else }}{{ .Arch }}{{ end }}"
 snapshot:
   version_template: "dashboard"
