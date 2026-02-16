@@ -3,27 +3,6 @@ before:
   hooks:
     - go mod tidy -v
 builds:
-  - id: linux_armv7l
-    env:
-      - CGO_ENABLED=1
-      - CC=arm-linux-gnueabihf-gcc
-    ldflags:
-      - -s -w
-      - -X github.com/nezhahq/nezha/service/singleton.Version={{.Version}}
-      - -extldflags "-static -fpic"
-    flags:
-      - -trimpath
-      - -buildvcs=false
-    tags:
-      - go_json
-    goos:
-      - linux
-    goarch:
-      - arm
-    goarm:
-      - "7"
-    main: ./cmd/dashboard
-    binary: dashboard-{{ .Os }}-{{ .Arch }}
   - id: linux_arm64
     env:
       - CGO_ENABLED=1
@@ -73,6 +52,7 @@ builds:
     flags:
       - -trimpath
       - -buildvcs=false
+      - -mod=vendor
     tags:
       - go_json
     goos:
@@ -100,8 +80,5 @@ builds:
       - amd64
     main: ./cmd/dashboard
     binary: dashboard-{{ .Os }}-{{ .Arch }}
-archives:
-  - format: zip
-    name_template: "dashboard-{{ .Os }}-{{ if eq .Arch \"arm\" }}armv7l{{ else }}{{ .Arch }}{{ end }}"
 snapshot:
   version_template: "dashboard"
