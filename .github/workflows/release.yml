@@ -65,6 +65,36 @@ jobs:
           go install github.com/swaggo/swag/cmd/swag@latest
           swag init --pd -d cmd/dashboard -g main.go -o cmd/dashboard/docs
 
+      - name: Cache zstd for armv7l
+        if: matrix.goarch == 'arm'
+        id: cache-zstd
+        uses: actions/cache@v4
+        with:
+          path: /tmp/zstd-arm
+          key: zstd-arm-v1.5.7
+      - name: Build zstd for armv7l
+        if: matrix.goarch == 'arm'
+        run: |
+          go mod vendor
+          if [ -f /tmp/zstd-arm/libzstd.a ]; then
+            echo "Using cached libzstd.a"
+          else
+            ZSTD_VERSION=v1.5.7
+            git clone --depth 1 --branch ${ZSTD_VERSION} https://github.com/facebook/zstd /tmp/zstd
+            cd /tmp/zstd/lib
+            CC=arm-linux-gnueabihf-gcc \
+              CXX=arm-linux-gnueabihf-g++ \
+              AR=arm-linux-gnueabihf-ar \
+              CFLAGS="-mfloat-abi=hard -mfpu=vfpv3-d16" \
+              ZSTD_LEGACY_SUPPORT=0 \
+              make clean libzstd.a
+            mkdir -p /tmp/zstd-arm
+            cp libzstd.a /tmp/zstd-arm/libzstd.a
+          fi
+          GOZSTD_VENDOR=${GITHUB_WORKSPACE}/vendor/github.com/valyala/gozstd
+          cp /tmp/zstd-arm/libzstd.a ${GOZSTD_VENDOR}/libzstd_linux_arm.a
+          printf '//go:build linux && arm\n\npackage gozstd\n\n/*\n#cgo LDFLAGS: ${SRCDIR}/libzstd_linux_arm.a\n*/\nimport "C"\n' > ${GOZSTD_VENDOR}/libzstd_linux_arm.go
+
       - name: Build with tag
         if: contains(github.ref, 'refs/tags/')
         uses: goreleaser/goreleaser-action@v6
