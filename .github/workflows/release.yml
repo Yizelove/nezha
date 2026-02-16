@@ -28,7 +28,7 @@ jobs:
     name: Build artifacts
     runs-on: ubuntu-latest
     container:
-      image: goreleaser/goreleaser-cross:v1.24
+      image: goreleaser/goreleaser-cross:v1.25
     steps:
       - run: |
           apt update && apt install unzip curl -y
@@ -63,7 +63,7 @@ jobs:
       - name: generate swagger docs
         run: |
           go install github.com/swaggo/swag/cmd/swag@latest
-          swag init --pd -d . -g ./cmd/dashboard/main.go -o ./cmd/dashboard/docs --parseGoList=false
+          swag init --pd -d cmd/dashboard -g main.go -o cmd/dashboard/docs
 
       - name: Build with tag
         if: contains(github.ref, 'refs/tags/')
